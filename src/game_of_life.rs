@@ -1,10 +1,9 @@
-pub mod game_of_life {
+pub mod game {
 
     #[derive(Clone, Copy, Debug)]
     pub enum Cell {
         Alive,
         Dead,
-        //Outside,
     }
 
     impl Default for &Cell {
@@ -32,7 +31,6 @@ pub mod game_of_life {
         pub fn iterate(mut self) -> Self {
             let mut next_universe = Universe::new(self.height, self.width);
             let alive = self.count_alive_neighbors();
-            //println!("{:?}", alive);
             for (i, cell) in self.cells.iter_mut().enumerate() {
                 match (cell, alive[i]) {
                     (Cell::Alive, 2 | 3) | (Cell::Dead, 3) => next_universe.cells[i] = Cell::Alive,
@@ -43,7 +41,6 @@ pub mod game_of_life {
         }
 
         fn get_cell(&self, (i, j): (usize, usize)) -> Cell {
-            //println!("{},{}", i, j);
             if i >= self.height || j >= self.width {
                 Cell::Dead
             } else {
@@ -62,7 +59,7 @@ pub mod game_of_life {
         }
         fn count_alive_neighbors(&self) -> Vec<usize> {
             let mut counter = vec![0; self.height * self.width];
-            for index in 0..self.height * self.width {
+            for (index, value) in counter.iter_mut().enumerate() {
                 let (i, j) = self.coordinates_from_linear(index);
                 for i_offset in 1..=3 {
                     for j_offset in 1..=3 {
@@ -79,13 +76,12 @@ pub mod game_of_life {
                         ) {
                             (2, 2, _) => continue,
                             (_, _, Cell::Alive) => {
-                                counter[index] += 1;
+                                *value += 1;
                             }
                             _ => continue,
                         }
                     }
                 }
-                //println!("{i}, {j} : {}", counter[index]);
             }
             counter
         }
@@ -93,12 +89,11 @@ pub mod game_of_life {
         pub fn display(&self) {
             for (i, cell) in self.cells.iter().enumerate() {
                 match *cell {
-                    //match self.get_cell(self.coordinates_from_linear(i)) {
                     Cell::Alive => print!("■ "),
                     Cell::Dead => print!("□ "),
                 }
                 if (i + 1) % self.width == 0 {
-                    println!("");
+                    println!();
                 }
             }
         }
