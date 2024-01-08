@@ -2,6 +2,8 @@ pub mod game {
     use std::fmt;
     use std::fmt::Formatter;
 
+    use bevy::ecs::component::Component;
+
     #[derive(Clone, Copy, Debug)]
     pub enum Cell {
         Alive,
@@ -14,10 +16,11 @@ pub mod game {
         }
     }
 
+    #[derive(crate::Component)]
     pub struct Universe {
-        height: usize,
-        width: usize,
-        cells: Vec<Cell>,
+        pub height: usize,
+        pub width: usize,
+        pub cells: Vec<Cell>,
     }
 
     impl Universe {
@@ -30,7 +33,7 @@ pub mod game {
             }
         }
 
-        pub fn iterate(mut self) -> Self {
+        pub fn iterate(&mut self) -> Self {
             let mut next_universe = Universe::new(self.height, self.width);
             let alive = self.count_alive_neighbors();
             for (i, cell) in self.cells.iter_mut().enumerate() {
@@ -53,7 +56,7 @@ pub mod game {
         pub fn edit_cell(&mut self, (i, j): (usize, usize), cell: Cell) {
             self.cells[i * self.width + j] = cell;
         }
-        fn coordinates_from_linear(&self, i: usize) -> (usize, usize) {
+        pub fn coordinates_from_linear(&self, i: usize) -> (usize, usize) {
             let y = i % self.width;
             let x = i / self.width;
 
