@@ -1,4 +1,6 @@
 pub mod game {
+    use std::fmt;
+    use std::fmt::Formatter;
 
     #[derive(Clone, Copy, Debug)]
     pub enum Cell {
@@ -85,17 +87,23 @@ pub mod game {
             }
             counter
         }
-
-        pub fn display(&self) {
+    }
+    impl fmt::Display for Universe {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             for (i, cell) in self.cells.iter().enumerate() {
                 match *cell {
-                    Cell::Alive => print!("■ "),
-                    Cell::Dead => print!("□ "),
+                    Cell::Alive => {
+                        write!(f, "■ ").expect("An error occurred while writing to buffer")
+                    }
+                    Cell::Dead => {
+                        write!(f, "□ ").expect("An error occurred while writing to buffer")
+                    }
                 }
                 if (i + 1) % self.width == 0 {
-                    println!();
+                    writeln!(f).expect("An error occurred while writing to buffer");
                 }
             }
+            Ok(())
         }
     }
 }

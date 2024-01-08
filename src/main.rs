@@ -1,7 +1,6 @@
 mod game_of_life;
-use std::{thread::sleep, time::Duration};
-
 use game_of_life::game::*;
+use std::{thread::sleep, time::Duration};
 
 fn main() {
     let mut universe = Universe::new(40, 40);
@@ -15,8 +14,7 @@ fn main() {
     let mut i = 0;
     loop {
         println!("{i}");
-        universe.display();
-        println!();
+        println!("{universe}");
         universe = universe.iterate();
         i += 1;
         sleep(Duration::from_millis(200));
