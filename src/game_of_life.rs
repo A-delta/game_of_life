@@ -45,7 +45,7 @@ pub mod game {
             next_universe
         }
 
-        fn get_cell(&self, (i, j): (usize, usize)) -> Cell {
+        pub fn get_cell(&self, (i, j): (usize, usize)) -> Cell {
             if i >= self.height || j >= self.width {
                 Cell::Dead
             } else {
