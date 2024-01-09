@@ -1,5 +1,5 @@
 mod game_of_life;
-use bevy::{prelude::*, window::WindowResolution};
+use bevy::prelude::*;
 use game_of_life::game::*;
 
 #[derive(Component)]
@@ -16,7 +16,8 @@ struct IterationTimer(Timer);
 fn create_universe(mut commands: Commands) {
     let cell_size = 25.0;
     let mut universe = Universe::new(500, 500);
-    let coords = vec![
+    let coords = [
+        // glider mess
         (1, 1),
         (2, 2),
         (2, 3),
@@ -27,9 +28,8 @@ fn create_universe(mut commands: Commands) {
         (3, 12),
         (5, 11),
         (5, 12),
-        // ^ glider mess
     ];
-    for (_, (i, j)) in coords.iter().enumerate() {
+    for (i, j) in coords.iter() {
         universe.edit_cell((*i + 250, *j + 250), Cell::Alive);
     }
     for (index, cell) in universe.cells.iter().enumerate() {
@@ -110,19 +110,16 @@ fn keyboard_input(
         let mut transform = query_transform_camera.single_mut();
         transform.translation +=
             Vec3::new(-1.0, 0.0, 0.0) * translation_speed * timer.delta_seconds() * boost;
-        // Space was pressed
     }
     if keys.pressed(KeyCode::S) {
         let mut transform = query_transform_camera.single_mut();
         transform.translation +=
             Vec3::new(0.0, -1.0, 0.0) * translation_speed * timer.delta_seconds() * boost;
-        // Space was pressed
     }
     if keys.pressed(KeyCode::D) {
         let mut transform = query_transform_camera.single_mut();
         transform.translation +=
             Vec3::new(1.0, 0.0, 0.0) * translation_speed * timer.delta_seconds() * boost;
-        // Space was pressed
     }
 
     if keys.pressed(KeyCode::E) {
@@ -135,13 +132,8 @@ fn keyboard_input(
     }
 }
 
-fn update_srpites_universe(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    time: Res<Time>,
-    mut timer: ResMut<IterationTimer>,
-    mut query_universe: Query<&mut Universe>,
+fn update_sprites_universe(
+    query_universe: Query<&mut Universe>,
     mut query_sprites: Query<(&CellSpriteId, &mut Sprite)>,
 ) {
     for (cell, mut sprite) in query_sprites.iter_mut() {
@@ -163,6 +155,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (create_universe, spawn_camera).chain())
         .add_systems(Update, ((iterate_universe), keyboard_input))
-        .add_systems(FixedUpdate, update_srpites_universe)
+        .add_systems(FixedUpdate, update_sprites_universe)
         .run();
 }

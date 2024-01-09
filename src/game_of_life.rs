@@ -2,8 +2,6 @@ pub mod game {
     use std::fmt;
     use std::fmt::Formatter;
 
-    use bevy::ecs::component::Component;
-
     #[derive(Clone, Copy, Debug)]
     pub enum Cell {
         Alive,
