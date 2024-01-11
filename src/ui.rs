@@ -13,10 +13,9 @@ pub enum UiState {
     Init,
     Play,
     Pause,
-    End,
 }
 
-fn ui_example_system(
+fn build_ui(
     mut contexts: EguiContexts,
     state: Option<ResMut<UiState>>,
     mut query: Query<&mut IterationDuration>,
@@ -26,7 +25,7 @@ fn ui_example_system(
             if let Some(mut state) = state {
                 match *state {
                     UiState::Play => *state = UiState::Pause,
-                    UiState::End | UiState::Init => *state = UiState::Play,
+                    UiState::Init => *state = UiState::Play,
                     _ => {}
                 }
             };
@@ -39,8 +38,9 @@ fn iteration_duration_slider_changed(
     mut timer: ResMut<IterationTimer>,
     query: Query<&IterationDuration, Changed<IterationDuration>>,
 ) {
-    let duration = query.single().0;
-    timer.0.set_duration(Duration::from_secs_f32(duration))
+    if let Ok(duration) = query.get_single() {
+        timer.0.set_duration(Duration::from_secs_f32(duration.0))
+    }
 }
 
 fn setup(mut commands: Commands) {
@@ -57,9 +57,6 @@ pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (setup,));
-        app.add_systems(
-            Update,
-            (ui_example_system, iteration_duration_slider_changed),
-        );
+        app.add_systems(Update, (build_ui, iteration_duration_slider_changed));
     }
 }
