@@ -11,8 +11,8 @@ impl Plugin for GameOfLifePlugin {
             0.0,
             TimerMode::Repeating,
         )))
-        .add_systems(Startup, (create_universe))
-        .add_systems(Update, (iterate_universe))
+        .add_systems(Startup, create_universe)
+        .add_systems(Update, iterate_universe)
         .add_systems(FixedUpdate, update_sprites_universe);
     }
 }
@@ -25,6 +25,7 @@ struct CellSpriteId {
 
 #[derive(Resource)]
 struct IterationTimer(Timer);
+
 fn create_universe(mut commands: Commands) {
     let cell_size = 25.0;
     let mut universe = Universe::new(500, 500);

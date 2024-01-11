@@ -1,4 +1,3 @@
-
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -7,15 +6,15 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (spawn_camera))
-            .add_systems(Update, (keyboard_input));
+        app.add_systems(Startup, spawn_camera)
+            .add_systems(Update, keyboard_input);
     }
 }
 
 fn spawn_camera(mut commands: Commands, mut window: Query<&Window>) {
-    let width = 500.0;
-    let cell_size = 25.0;
-    let window = &window.single_mut();
+    // let width = 500.0;
+    // let cell_size = 25.0;
+    // let window = &window.single_mut();
     let scale = 10.0;
     println!("{scale}");
     commands.spawn((

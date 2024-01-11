@@ -1,6 +1,7 @@
-
 use std::fmt;
 use std::fmt::Formatter;
+
+use bevy::utils::tracing::field::Iter;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Cell {
@@ -60,6 +61,7 @@ impl Universe {
 
         (x, y)
     }
+
     fn count_alive_neighbors(&self) -> Vec<usize> {
         let mut counter = vec![0; self.height * self.width];
         for (index, value) in counter.iter_mut().enumerate() {
