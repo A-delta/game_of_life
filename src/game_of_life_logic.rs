@@ -1,8 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-use bevy::utils::tracing::field::Iter;
-
 #[derive(Clone, Copy, Debug)]
 pub enum Cell {
     Alive,

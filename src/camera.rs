@@ -16,7 +16,6 @@ fn spawn_camera(mut commands: Commands, mut window: Query<&Window>) {
     // let cell_size = 25.0;
     // let window = &window.single_mut();
     let scale = 10.0;
-    println!("{scale}");
     commands.spawn((
         Camera2dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 10.0),
@@ -68,6 +67,5 @@ fn keyboard_input(
 
     if keys.pressed(KeyCode::A) {
         projection.scale *= 1.1;
-        println!("New scaling factor : {}", projection.scale);
     }
 }
