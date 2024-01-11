@@ -1,19 +1,15 @@
+use crate::game_of_life_logic;
+use crate::ui::{IterationTimer, UiState};
 use bevy::prelude::*;
 use game_of_life_logic::*;
-
-use crate::game_of_life_logic;
 
 pub struct GameOfLifePlugin;
 
 impl Plugin for GameOfLifePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(IterationTimer(Timer::from_seconds(
-            0.0,
-            TimerMode::Repeating,
-        )))
-        .add_systems(Startup, create_universe)
-        .add_systems(Update, iterate_universe)
-        .add_systems(FixedUpdate, update_sprites_universe);
+        app.add_systems(Startup, create_universe)
+            .add_systems(Update, iterate_universe)
+            .add_systems(FixedUpdate, update_sprites_universe);
     }
 }
 
@@ -22,9 +18,6 @@ struct CellSpriteId {
     i: usize,
     j: usize,
 }
-
-#[derive(Resource)]
-struct IterationTimer(Timer);
 
 fn create_universe(mut commands: Commands) {
     let cell_size = 25.0;
@@ -74,11 +67,16 @@ fn create_universe(mut commands: Commands) {
 fn iterate_universe(
     time: Res<Time>,
     mut timer: ResMut<IterationTimer>,
+    ui_state: Option<ResMut<UiState>>,
     mut query: Query<&mut Universe>,
 ) {
-    if timer.0.tick(time.delta()).just_finished() {
-        for mut uni in &mut query {
-            *uni = uni.iterate();
+    if let Some(ui_state) = ui_state {
+        if let UiState::Play = ui_state.into_inner() {
+            if timer.0.tick(time.delta()).just_finished() {
+                for mut uni in &mut query {
+                    *uni = uni.iterate();
+                }
+            }
         }
     }
 }
