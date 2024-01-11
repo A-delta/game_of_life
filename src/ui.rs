@@ -23,15 +23,25 @@ fn build_ui(
     egui::Window::new("Menu").show(contexts.ctx_mut(), |ui| {
         if ui.add(egui::Button::new("Play/Stop")).clicked() {
             if let Some(mut state) = state {
-                match *state {
-                    UiState::Play => *state = UiState::Pause,
-                    UiState::Init => *state = UiState::Play,
-                    _ => {}
-                }
+                invert_state(&mut state)
             };
         };
         ui.add(egui::Slider::new(&mut query.single_mut().0, 0.0..=1.0));
     });
+}
+fn invert_state(state: &mut UiState) {
+    match *state {
+        UiState::Play => *state = UiState::Pause,
+        UiState::Init | UiState::Pause => *state = UiState::Play,
+        _ => {}
+    }
+}
+fn ui_keyboard_controls(state: Option<ResMut<UiState>>, keys: Res<Input<KeyCode>>) {
+    if keys.just_pressed(KeyCode::Space) {
+        if let Some(mut state) = state {
+            invert_state(&mut state)
+        }
+    }
 }
 
 fn iteration_duration_slider_changed(
@@ -46,10 +56,10 @@ fn iteration_duration_slider_changed(
 fn setup(mut commands: Commands) {
     commands.insert_resource(UiState::Init);
     commands.insert_resource(IterationTimer(Timer::from_seconds(
-        0.3,
+        0.15,
         TimerMode::Repeating,
     )));
-    let duration = IterationDuration(0.3);
+    let duration = IterationDuration(0.15);
     commands.spawn(duration);
 }
 
@@ -57,6 +67,13 @@ pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (setup,));
-        app.add_systems(Update, (build_ui, iteration_duration_slider_changed));
+        app.add_systems(
+            Update,
+            (
+                build_ui,
+                ui_keyboard_controls,
+                iteration_duration_slider_changed,
+            ),
+        );
     }
 }
