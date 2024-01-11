@@ -7,7 +7,7 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_camera)
-            .add_systems(Update, keyboard_input);
+            .add_systems(Update, camera_controls);
     }
 }
 
@@ -25,7 +25,7 @@ fn spawn_camera(mut commands: Commands, mut window: Query<&Window>) {
         MainCamera,
     ));
 }
-fn keyboard_input(
+fn camera_controls(
     keys: Res<Input<KeyCode>>,
     timer: ResMut<Time>,
     mut query_camera: Query<&mut OrthographicProjection, With<MainCamera>>,
