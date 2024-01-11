@@ -1,110 +1,97 @@
-pub mod game {
-    use std::fmt;
-    use std::fmt::Formatter;
+use bevy::prelude::*;
+use game_of_life_logic::*;
 
-    #[derive(Clone, Copy, Debug)]
-    pub enum Cell {
-        Alive,
-        Dead,
+use crate::game_of_life_logic;
+
+pub struct GameOfLifePlugin;
+
+impl Plugin for GameOfLifePlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(IterationTimer(Timer::from_seconds(
+            0.0,
+            TimerMode::Repeating,
+        )))
+        .add_systems(Startup, (create_universe))
+        .add_systems(Update, (iterate_universe))
+        .add_systems(FixedUpdate, update_sprites_universe);
+    }
+}
+
+#[derive(Component)]
+struct CellSpriteId {
+    i: usize,
+    j: usize,
+}
+
+#[derive(Resource)]
+struct IterationTimer(Timer);
+fn create_universe(mut commands: Commands) {
+    let cell_size = 25.0;
+    let mut universe = Universe::new(500, 500);
+    let coords = [
+        // glider mess
+        (1, 1),
+        (2, 2),
+        (2, 3),
+        (1, 3),
+        (0, 3),
+        (4, 10),
+        (4, 11),
+        (3, 12),
+        (5, 11),
+        (5, 12),
+    ];
+    for (i, j) in coords.iter() {
+        universe.edit_cell((*i + 250, *j + 250), Cell::Alive);
+    }
+    for (index, cell) in universe.cells.iter().enumerate() {
+        let (i, j) = universe.coordinates_from_linear(index);
+        let mut color = Color::BLACK;
+        match *cell {
+            Cell::Alive => color = Color::WHITE,
+            Cell::Dead => {}
+        }
+        let new_sprite = SpriteBundle {
+            sprite: Sprite {
+                color,
+                custom_size: Some(Vec2::new(cell_size, cell_size)),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(
+                j as f32 * cell_size - cell_size * universe.width as f32 / 2.0,
+                i as f32 * cell_size - cell_size * universe.height as f32 / 2.0,
+                0.,
+            )),
+            ..default()
+        };
+        commands.spawn((new_sprite, CellSpriteId { i, j }));
     }
 
-    impl Default for &Cell {
-        fn default() -> Self {
-            &Cell::Dead
+    commands.spawn(universe);
+}
+
+fn iterate_universe(
+    time: Res<Time>,
+    mut timer: ResMut<IterationTimer>,
+    mut query: Query<&mut Universe>,
+) {
+    if timer.0.tick(time.delta()).just_finished() {
+        for mut uni in &mut query {
+            *uni = uni.iterate();
         }
     }
+}
 
-    #[derive(crate::Component)]
-    pub struct Universe {
-        pub height: usize,
-        pub width: usize,
-        pub cells: Vec<Cell>,
-    }
-
-    impl Universe {
-        pub fn new(height: usize, width: usize) -> Universe {
-            let cells = vec![Cell::Dead; width * height];
-            Universe {
-                height,
-                width,
-                cells,
+fn update_sprites_universe(
+    query_universe: Query<&mut Universe>,
+    mut query_sprites: Query<(&CellSpriteId, &mut Sprite)>,
+) {
+    for (cell, mut sprite) in query_sprites.iter_mut() {
+        for uni in &query_universe {
+            match uni.get_cell((cell.i, cell.j)) {
+                Cell::Alive => sprite.color = Color::WHITE,
+                Cell::Dead => sprite.color = Color::BLACK,
             }
-        }
-
-        pub fn iterate(&mut self) -> Self {
-            let mut next_universe = Universe::new(self.height, self.width);
-            let alive = self.count_alive_neighbors();
-            for (i, cell) in self.cells.iter_mut().enumerate() {
-                match (cell, alive[i]) {
-                    (Cell::Alive, 2 | 3) | (Cell::Dead, 3) => next_universe.cells[i] = Cell::Alive,
-                    _ => {}
-                }
-            }
-            next_universe
-        }
-
-        pub fn get_cell(&self, (i, j): (usize, usize)) -> Cell {
-            if i >= self.height || j >= self.width {
-                Cell::Dead
-            } else {
-                *(self.cells.get(i * self.width + j).unwrap_or_default())
-            }
-        }
-
-        pub fn edit_cell(&mut self, (i, j): (usize, usize), cell: Cell) {
-            self.cells[i * self.width + j] = cell;
-        }
-        pub fn coordinates_from_linear(&self, i: usize) -> (usize, usize) {
-            let y = i % self.width;
-            let x = i / self.width;
-
-            (x, y)
-        }
-        fn count_alive_neighbors(&self) -> Vec<usize> {
-            let mut counter = vec![0; self.height * self.width];
-            for (index, value) in counter.iter_mut().enumerate() {
-                let (i, j) = self.coordinates_from_linear(index);
-                for i_offset in 1..=3 {
-                    for j_offset in 1..=3 {
-                        let (i_offsetted, j_offsetted) =
-                            if (i == 0 && i_offset == 1) || (j == 0 && j_offset == 1) {
-                                (0, 0)
-                            } else {
-                                (i + (i_offset) - 2, j + (j_offset) - 2)
-                            };
-                        match (
-                            i_offset,
-                            j_offset,
-                            self.get_cell((i_offsetted, j_offsetted)),
-                        ) {
-                            (2, 2, _) => continue,
-                            (_, _, Cell::Alive) => {
-                                *value += 1;
-                            }
-                            _ => continue,
-                        }
-                    }
-                }
-            }
-            counter
-        }
-    }
-    impl fmt::Display for Universe {
-        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            for (i, cell) in self.cells.iter().enumerate() {
-                match *cell {
-                    Cell::Alive => {
-                        write!(f, "■ ").expect("An error occurred while writing to buffer")
-                    }
-                    Cell::Dead => {
-                        write!(f, "□ ").expect("An error occurred while writing to buffer")
-                    }
-                }
-                if (i + 1) % self.width == 0 {
-                    writeln!(f).expect("An error occurred while writing to buffer");
-                }
-            }
-            Ok(())
         }
     }
 }
