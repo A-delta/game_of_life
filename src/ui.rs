@@ -12,6 +12,10 @@ pub struct IterationTimer(pub Timer);
 #[derive(Component)]
 struct IterationDuration(f32);
 
+// for paint brush
+#[derive(Resource)]
+struct LastChangedTile(usize, usize);
+
 #[derive(Resource, Debug)]
 pub enum UiState {
     Play,
@@ -74,6 +78,7 @@ fn invert_state(state: &mut UiState) {
 }
 fn ui_controls(
     state: Option<ResMut<UiState>>,
+    mut last_modified: ResMut<LastChangedTile>,
     keys: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
@@ -85,7 +90,7 @@ fn ui_controls(
             invert_state(&mut state)
         }
     }
-    if buttons.just_pressed(MouseButton::Left) {
+    if buttons.pressed(MouseButton::Left) {
         // Games typically only have one window (the primary window)
         if let Some(position) = q_windows.single().cursor_position() {
             let cell_size = 25.0;
@@ -98,8 +103,11 @@ fn ui_controls(
                     ((position_world.x) / cell_size + 0.5 + uni.width as f32 / 2.0) as usize,
                 );
                 println!("{i}, {j}, {}", uni.height);
-                if j < uni.width && i < uni.height {
+                if j < uni.width && i < uni.height && (i != last_modified.0 || j != last_modified.1)
+                {
                     uni.edit_cell((i, j));
+                    last_modified.0 = i;
+                    last_modified.1 = j;
                 }
             }
         }
@@ -122,6 +130,8 @@ fn setup(mut commands: Commands) {
         TimerMode::Repeating,
     )));
     let duration = IterationDuration(0.15);
+
+    commands.insert_resource(LastChangedTile(usize::MAX, usize::MAX));
     commands.spawn(duration);
 }
 
