@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-struct MainCamera;
+pub struct MainCamera;
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
