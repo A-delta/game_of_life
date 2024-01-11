@@ -50,8 +50,11 @@ impl Universe {
         }
     }
 
-    pub fn edit_cell(&mut self, (i, j): (usize, usize), cell: Cell) {
-        self.cells[i * self.width + j] = cell;
+    pub fn edit_cell(&mut self, (i, j): (usize, usize)) {
+        match self.cells[i * self.width + j] {
+            Cell::Alive => self.cells[i * self.width + j] = Cell::Dead,
+            Cell::Dead => self.cells[i * self.width + j] = Cell::Alive,
+        }
     }
     pub fn coordinates_from_linear(&self, i: usize) -> (usize, usize) {
         let y = i % self.width;

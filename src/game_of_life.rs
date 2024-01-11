@@ -36,7 +36,7 @@ fn create_universe(mut commands: Commands) {
         (5, 12),
     ];
     for (i, j) in coords.iter() {
-        universe.edit_cell((*i + 250, *j + 250), Cell::Alive);
+        universe.edit_cell((*i + 250, *j + 250));
     }
     for (index, cell) in universe.cells.iter().enumerate() {
         let (i, j) = universe.coordinates_from_linear(index);
