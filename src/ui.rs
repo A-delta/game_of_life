@@ -4,13 +4,16 @@ use bevy_egui::{egui, EguiContexts};
 use std::time::Duration;
 
 use crate::camera::MainCamera;
-use crate::game_of_life_logic::Universe;
+use crate::game_of_life_logic::{Cell, Universe};
 use rand::Rng;
 #[derive(Resource)]
 pub struct IterationTimer(pub Timer);
 
 #[derive(Component)]
 struct IterationDuration(f32);
+
+#[derive(Component)]
+struct RandomizeProbability(f32);
 
 // for paint brush
 #[derive(Resource)]
@@ -25,39 +28,65 @@ pub enum UiState {
 fn build_ui(
     mut contexts: EguiContexts,
     state: Option<ResMut<UiState>>,
-    mut query: Query<&mut IterationDuration>,
+    mut query_duration: Query<&mut IterationDuration>,
     mut query_universe: Query<&mut Universe>,
+    mut query_randomizer_factor: Query<&mut RandomizeProbability>,
 ) {
     egui::SidePanel::left("Menu")
         .resizable(true)
         .show(contexts.ctx_mut(), |ui| {
+            ui.heading("Game Of Life");
+            ui.label("Camera controls : Z, Q, S, D");
+            ui.label("Zoom : A, E");
             if let Some(mut state) = state {
                 if ui.add(egui::Button::new("Play/Stop [Space]")).clicked() {
                     invert_state(&mut state)
                 };
                 if ui.add(egui::Button::new("Reset")).clicked() {
-                    for mut uni in &mut query_universe {
-                        *uni = Universe::new(uni.height, uni.width);
-                    }
+                    reset_universe(&mut query_universe);
+                };
+                if ui.button("Quit").clicked() {
+                    std::process::exit(0);
                 };
                 if ui.add(egui::Button::new("Randomize")).clicked() {
-                    for mut uni in &mut query_universe {
-                        let mut rng = rand::thread_rng();
-                        for i in 1..uni.height {
-                            for j in 1..uni.width {
-                                if rng.gen::<f32>() > 0.3 {
-                                    uni.edit_cell((i, j));
-                                };
-                            }
-                        }
-                    }
+                    reset_universe(&mut query_universe);
+                    randomize_universe(&mut query_universe, &query_randomizer_factor);
                 };
                 ui.add(
-                    egui::Slider::new(&mut query.single_mut().0, 0.0..=1.0).text("Iteration time"),
+                    egui::Slider::new(&mut query_duration.single_mut().0, 0.0..=1.0)
+                        .text("Iteration time"),
+                );
+
+                ui.add(
+                    egui::Slider::new(&mut query_randomizer_factor.single_mut().0, 0.0..=1.0)
+                        .text("Randomizer factor"),
                 );
             };
         });
 }
+
+fn reset_universe(query_universe: &mut Query<&mut Universe>) {
+    for mut uni in &mut *query_universe {
+        *uni = Universe::new(uni.height, uni.width);
+    }
+}
+
+fn randomize_universe(
+    query_universe: &mut Query<&mut Universe>,
+    query_randomizer_factor: &Query<&mut RandomizeProbability>,
+) {
+    for mut uni in &mut *query_universe {
+        let mut rng = rand::thread_rng();
+        for i in 1..uni.height {
+            for j in 1..uni.width {
+                if rng.gen::<f32>() < query_randomizer_factor.single().0 {
+                    uni.set_cell((i, j), Cell::Alive);
+                };
+            }
+        }
+    }
+}
+
 fn build_grid(state: ResMut<UiState>, query_universe: Query<&Universe>, mut gizmos: Gizmos) {
     let cell_size = 25.0;
     let uni = query_universe.single();
@@ -150,10 +179,10 @@ fn setup(mut commands: Commands) {
         0.15,
         TimerMode::Repeating,
     )));
-    let duration = IterationDuration(0.15);
 
     commands.insert_resource(LastChangedTile(usize::MAX, usize::MAX));
-    commands.spawn(duration);
+    commands.spawn(IterationDuration(0.15));
+    commands.spawn(RandomizeProbability(0.3));
 }
 
 pub struct UIPlugin;
