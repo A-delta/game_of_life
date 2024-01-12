@@ -56,6 +56,10 @@ impl Universe {
             Cell::Dead => self.cells[i * self.width + j] = Cell::Alive,
         }
     }
+
+    pub fn set_cell(&mut self, (i, j): (usize, usize), cell: Cell) {
+        self.cells[i * self.width + j] = cell;
+    }
     pub fn coordinates_from_linear(&self, i: usize) -> (usize, usize) {
         let y = i % self.width;
         let x = i / self.width;
