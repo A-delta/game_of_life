@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::camera::MainCamera;
 use crate::game_of_life_logic::Universe;
-
+use rand::Rng;
 #[derive(Resource)]
 pub struct IterationTimer(pub Timer);
 
@@ -26,15 +26,37 @@ fn build_ui(
     mut contexts: EguiContexts,
     state: Option<ResMut<UiState>>,
     mut query: Query<&mut IterationDuration>,
+    mut query_universe: Query<&mut Universe>,
 ) {
-    egui::Window::new("Menu").show(contexts.ctx_mut(), |ui| {
-        if ui.add(egui::Button::new("Play/Stop [Space]")).clicked() {
+    egui::SidePanel::left("Menu")
+        .resizable(true)
+        .show(contexts.ctx_mut(), |ui| {
             if let Some(mut state) = state {
-                invert_state(&mut state)
+                if ui.add(egui::Button::new("Play/Stop [Space]")).clicked() {
+                    invert_state(&mut state)
+                };
+                if ui.add(egui::Button::new("Reset")).clicked() {
+                    for mut uni in &mut query_universe {
+                        *uni = Universe::new(uni.height, uni.width);
+                    }
+                };
+                if ui.add(egui::Button::new("Randomize")).clicked() {
+                    for mut uni in &mut query_universe {
+                        let mut rng = rand::thread_rng();
+                        for i in 1..uni.height {
+                            for j in 1..uni.width {
+                                if rng.gen::<f32>() > 0.3 {
+                                    uni.edit_cell((i, j));
+                                };
+                            }
+                        }
+                    }
+                };
+                ui.add(
+                    egui::Slider::new(&mut query.single_mut().0, 0.0..=1.0).text("Iteration time"),
+                );
             };
-        };
-        ui.add(egui::Slider::new(&mut query.single_mut().0, 0.0..=1.0));
-    });
+        });
 }
 fn build_grid(state: ResMut<UiState>, query_universe: Query<&Universe>, mut gizmos: Gizmos) {
     let cell_size = 25.0;
@@ -102,7 +124,6 @@ fn ui_controls(
                     ((position_world.y) / cell_size + 0.5 + uni.height as f32 / 2.0) as usize,
                     ((position_world.x) / cell_size + 0.5 + uni.width as f32 / 2.0) as usize,
                 );
-                println!("{i}, {j}, {}", uni.height);
                 if j < uni.width && i < uni.height && (i != last_modified.0 || j != last_modified.1)
                 {
                     uni.edit_cell((i, j));
