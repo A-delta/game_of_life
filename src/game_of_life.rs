@@ -8,8 +8,7 @@ pub struct GameOfLifePlugin;
 impl Plugin for GameOfLifePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, create_universe)
-            .add_systems(Update, iterate_universe)
-            .add_systems(FixedUpdate, update_sprites_universe);
+            .add_systems(Update, (iterate_universe, update_sprites_universe).chain());
     }
 }
 
