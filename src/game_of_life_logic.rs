@@ -1,5 +1,8 @@
+use rayon::prelude::*;
 use std::fmt;
 use std::fmt::Formatter;
+
+use crate::game_of_life;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Cell {
@@ -33,12 +36,17 @@ impl Universe {
     pub fn iterate(&mut self) -> Self {
         let mut next_universe = Universe::new(self.height, self.width);
         let alive = self.count_alive_neighbors();
-        for (i, cell) in self.cells.iter_mut().enumerate() {
-            match (cell, alive[i]) {
-                (Cell::Alive, 2 | 3) | (Cell::Dead, 3) => next_universe.cells[i] = Cell::Alive,
-                _ => {}
-            }
-        }
+        next_universe.cells = next_universe
+            .cells
+            .par_iter_mut()
+            .enumerate()
+            .map(|(i, cell)| -> Cell {
+                match (cell, alive[i]) {
+                    (Cell::Alive, 2 | 3) | (Cell::Dead, 3) => Cell::Alive,
+                    _ => Cell::Dead,
+                }
+            })
+            .collect::<Vec<Cell>>();
         next_universe
     }
 
