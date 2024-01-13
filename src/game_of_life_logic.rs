@@ -13,7 +13,7 @@ impl Default for &Cell {
     }
 }
 
-#[derive(crate::Component)]
+#[derive(crate::Resource)]
 pub struct Universe {
     pub height: usize,
     pub width: usize,

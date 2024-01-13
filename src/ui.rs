@@ -4,6 +4,7 @@ use bevy_egui::{egui, EguiContexts};
 use std::time::Duration;
 
 use crate::camera::MainCamera;
+use crate::game_of_life::GameOfLifePlugin;
 use crate::game_of_life_logic::{Cell, Universe};
 use rand::Rng;
 #[derive(Resource)]
@@ -28,8 +29,8 @@ pub enum UiState {
 fn build_ui(
     mut contexts: EguiContexts,
     state: Option<ResMut<UiState>>,
+    mut universe: ResMut<Universe>,
     mut query_duration: Query<&mut IterationDuration>,
-    mut query_universe: Query<&mut Universe>,
     mut query_randomizer_factor: Query<&mut RandomizeProbability>,
 ) {
     egui::SidePanel::left("Menu")
@@ -43,14 +44,14 @@ fn build_ui(
                     invert_state(&mut state)
                 };
                 if ui.add(egui::Button::new("Reset")).clicked() {
-                    reset_universe(&mut query_universe);
+                    reset_universe(&mut universe);
                 };
                 if ui.button("Quit").clicked() {
                     std::process::exit(0);
                 };
                 if ui.add(egui::Button::new("Randomize")).clicked() {
-                    reset_universe(&mut query_universe);
-                    randomize_universe(&mut query_universe, &query_randomizer_factor);
+                    reset_universe(&mut universe);
+                    randomize_universe(&mut universe, &query_randomizer_factor);
                 };
                 ui.add(
                     egui::Slider::new(&mut query_duration.single_mut().0, 0.0..=1.0)
@@ -65,31 +66,27 @@ fn build_ui(
         });
 }
 
-fn reset_universe(query_universe: &mut Query<&mut Universe>) {
-    for mut uni in &mut *query_universe {
-        *uni = Universe::new(uni.height, uni.width);
-    }
+fn reset_universe(universe: &mut Universe) {
+    *universe = Universe::new(universe.height, universe.width);
 }
 
 fn randomize_universe(
-    query_universe: &mut Query<&mut Universe>,
+    universe: &mut ResMut<Universe>,
     query_randomizer_factor: &Query<&mut RandomizeProbability>,
 ) {
-    for mut uni in &mut *query_universe {
-        let mut rng = rand::thread_rng();
-        for i in 1..uni.height {
-            for j in 1..uni.width {
-                if rng.gen::<f32>() < query_randomizer_factor.single().0 {
-                    uni.set_cell((i, j), Cell::Alive);
-                };
-            }
+    let mut rng = rand::thread_rng();
+    for i in 1..universe.height {
+        for j in 1..universe.width {
+            if rng.gen::<f32>() < query_randomizer_factor.single().0 {
+                universe.set_cell((i, j), Cell::Alive);
+            };
         }
     }
 }
 
-fn build_grid(state: ResMut<UiState>, query_universe: Query<&Universe>, mut gizmos: Gizmos) {
+fn build_grid(state: ResMut<UiState>, universe: ResMut<Universe>, mut gizmos: Gizmos) {
     let cell_size = 25.0;
-    let uni = query_universe.single();
+    let uni = universe;
     if let UiState::Pause = *state {
         for i in 1..uni.width {
             gizmos.line_2d(
@@ -133,7 +130,7 @@ fn ui_controls(
     keys: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
-    mut query_universe: Query<&mut Universe>,
+    universe: ResMut<Universe>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
@@ -145,7 +142,7 @@ fn ui_controls(
         // Games typically only have one window (the primary window)
         if let Some(position) = q_windows.single().cursor_position() {
             let cell_size = 25.0;
-            let mut uni = query_universe.single_mut();
+            let mut uni = universe;
 
             let (camera, camera_transform) = camera_query.single();
             if let Some(position_world) = camera.viewport_to_world_2d(camera_transform, position) {
@@ -188,15 +185,16 @@ fn setup(mut commands: Commands) {
 pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup,));
-        app.add_systems(
-            Update,
-            (
-                build_ui,
-                build_grid,
-                ui_controls,
-                iteration_duration_slider_changed,
-            ),
-        );
+        app.add_plugins(GameOfLifePlugin)
+            .add_systems(Startup, (setup,))
+            .add_systems(
+                Update,
+                (
+                    build_ui,
+                    build_grid,
+                    ui_controls,
+                    iteration_duration_slider_changed,
+                ),
+            );
     }
 }

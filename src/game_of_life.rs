@@ -1,7 +1,7 @@
 use crate::game_of_life_logic;
 use crate::ui::{IterationTimer, UiState};
 use bevy::prelude::*;
-use game_of_life_logic::*;
+use game_of_life_logic::{Cell, Universe};
 
 pub struct GameOfLifePlugin;
 
@@ -61,36 +61,32 @@ fn create_universe(mut commands: Commands) {
         commands.spawn((new_sprite, CellSpriteId { i, j }));
     }
 
-    commands.spawn(universe);
+    commands.insert_resource(universe);
 }
 
 fn iterate_universe(
     time: Res<Time>,
     mut timer: ResMut<IterationTimer>,
     ui_state: Option<ResMut<UiState>>,
-    mut query: Query<&mut Universe>,
+    mut universe: ResMut<Universe>,
 ) {
     if let Some(ui_state) = ui_state {
         if let UiState::Play = ui_state.into_inner() {
             if timer.0.tick(time.delta()).just_finished() {
-                for mut uni in &mut query {
-                    *uni = uni.iterate();
-                }
+                *universe = universe.iterate();
             }
         }
     }
 }
 
 fn update_sprites_universe(
-    query_universe: Query<&mut Universe>,
+    universe: ResMut<Universe>,
     mut query_sprites: Query<(&CellSpriteId, &mut Sprite)>,
 ) {
     for (cell, mut sprite) in query_sprites.iter_mut() {
-        for uni in &query_universe {
-            match uni.get_cell((cell.i, cell.j)) {
-                Cell::Alive => sprite.color = Color::WHITE,
-                Cell::Dead => sprite.color = Color::BLACK,
-            }
+        match universe.get_cell((cell.i, cell.j)) {
+            Cell::Alive => sprite.color = Color::WHITE,
+            Cell::Dead => sprite.color = Color::BLACK,
         }
     }
 }
