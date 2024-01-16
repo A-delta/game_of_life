@@ -1,5 +1,5 @@
-use crate::game_of_life_logic;
-use crate::ui::{IterationTimer, UiState};
+use crate::ui::IterationTimer;
+use crate::{game_of_life_logic, ui::AppState};
 use bevy::prelude::*;
 use game_of_life_logic::{Cell, Universe};
 
@@ -8,7 +8,8 @@ pub struct GameOfLifePlugin;
 impl Plugin for GameOfLifePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, create_universe)
-            .add_systems(Update, (iterate_universe, update_sprites_universe).chain());
+            .add_systems(Update, iterate_universe.run_if(in_state(AppState::Play)))
+            .add_systems(Update, update_sprites_universe);
     }
 }
 
@@ -66,15 +67,10 @@ fn create_universe(mut commands: Commands) {
 fn iterate_universe(
     time: Res<Time>,
     mut timer: ResMut<IterationTimer>,
-    ui_state: Option<ResMut<UiState>>,
     mut universe: ResMut<Universe>,
 ) {
-    if let Some(ui_state) = ui_state {
-        if let UiState::Play = ui_state.into_inner() {
-            if timer.0.tick(time.delta()).just_finished() {
-                *universe = universe.iterate();
-            }
-        }
+    if timer.0.tick(time.delta()).just_finished() {
+        *universe = universe.iterate();
     }
 }
 

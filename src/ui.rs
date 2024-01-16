@@ -1,12 +1,10 @@
+use crate::camera::MainCamera;
+use crate::game_of_life_logic::{Cell, Universe};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContexts};
-use std::time::Duration;
-
-use crate::camera::MainCamera;
-use crate::game_of_life::GameOfLifePlugin;
-use crate::game_of_life_logic::{Cell, Universe};
 use rand::Rng;
+use std::time::Duration;
 #[derive(Resource)]
 pub struct IterationTimer(pub Timer);
 
@@ -20,15 +18,30 @@ struct RandomizeProbability(f32);
 #[derive(Resource)]
 struct LastChangedTile(usize, usize);
 
-#[derive(Resource, Debug)]
-pub enum UiState {
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+pub enum AppState {
     Play,
+    #[default]
     Pause,
+}
+
+pub struct UIPlugin;
+impl Plugin for UIPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_state::<AppState>()
+            .add_systems(Startup, setup)
+            .add_systems(
+                Update,
+                (build_ui, ui_controls, iteration_duration_slider_changed),
+            )
+            .add_systems(Update, build_grid.run_if(in_state(AppState::Pause)));
+    }
 }
 
 fn build_ui(
     mut contexts: EguiContexts,
-    state: Option<ResMut<UiState>>,
+    app_state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
     mut universe: ResMut<Universe>,
     mut query_duration: Query<&mut IterationDuration>,
     mut query_randomizer_factor: Query<&mut RandomizeProbability>,
@@ -39,30 +52,28 @@ fn build_ui(
             ui.heading("Game Of Life");
             ui.label("Camera controls : Z, Q, S, D");
             ui.label("Zoom : A, E");
-            if let Some(mut state) = state {
-                if ui.add(egui::Button::new("Play/Stop [Space]")).clicked() {
-                    invert_state(&mut state)
-                };
-                if ui.add(egui::Button::new("Reset")).clicked() {
-                    reset_universe(&mut universe);
-                };
-                if ui.button("Quit").clicked() {
-                    std::process::exit(0);
-                };
-                if ui.add(egui::Button::new("Randomize")).clicked() {
-                    reset_universe(&mut universe);
-                    randomize_universe(&mut universe, &query_randomizer_factor);
-                };
-                ui.add(
-                    egui::Slider::new(&mut query_duration.single_mut().0, 0.0..=1.0)
-                        .text("Iteration time"),
-                );
-
-                ui.add(
-                    egui::Slider::new(&mut query_randomizer_factor.single_mut().0, 0.0..=1.0)
-                        .text("Randomizer factor"),
-                );
+            if ui.add(egui::Button::new("Play/Stop [Space]")).clicked() {
+                invert_state(&app_state, &mut next_state)
             };
+            if ui.add(egui::Button::new("Reset")).clicked() {
+                reset_universe(&mut universe);
+            };
+            if ui.button("Quit").clicked() {
+                std::process::exit(0);
+            };
+            if ui.add(egui::Button::new("Randomize")).clicked() {
+                reset_universe(&mut universe);
+                randomize_universe(&mut universe, &query_randomizer_factor);
+            };
+            ui.add(
+                egui::Slider::new(&mut query_duration.single_mut().0, 0.0..=1.0)
+                    .text("Iteration time"),
+            );
+
+            ui.add(
+                egui::Slider::new(&mut query_randomizer_factor.single_mut().0, 0.0..=1.0)
+                    .text("Randomizer factor"),
+            );
         });
 }
 
@@ -84,48 +95,47 @@ fn randomize_universe(
     }
 }
 
-fn build_grid(state: ResMut<UiState>, universe: ResMut<Universe>, mut gizmos: Gizmos) {
+fn build_grid(universe: ResMut<Universe>, mut gizmos: Gizmos) {
     let cell_size = 25.0;
     let uni = universe;
-    if let UiState::Pause = *state {
-        for i in 1..uni.width {
-            gizmos.line_2d(
-                Vec2::new(
-                    i as f32 * cell_size - (cell_size + cell_size * uni.width as f32) / 2.0,
-                    -(cell_size + cell_size * uni.height as f32) / 2.0,
-                ),
-                Vec2::new(
-                    i as f32 * cell_size - (cell_size + cell_size * uni.width as f32) / 2.0,
-                    (cell_size + cell_size * (uni.height - 2) as f32) / 2.0,
-                ),
-                Color::GRAY,
-            );
-        }
+    for i in 1..uni.width {
+        gizmos.line_2d(
+            Vec2::new(
+                i as f32 * cell_size - (cell_size + cell_size * uni.width as f32) / 2.0,
+                -(cell_size + cell_size * uni.height as f32) / 2.0,
+            ),
+            Vec2::new(
+                i as f32 * cell_size - (cell_size + cell_size * uni.width as f32) / 2.0,
+                (cell_size + cell_size * (uni.height - 2) as f32) / 2.0,
+            ),
+            Color::GRAY,
+        );
+    }
 
-        for i in 1..uni.height {
-            gizmos.line_2d(
-                Vec2::new(
-                    -(cell_size + cell_size * uni.width as f32) / 2.0,
-                    i as f32 * cell_size - (cell_size + cell_size * uni.height as f32) / 2.0,
-                ),
-                Vec2::new(
-                    (cell_size + cell_size * (uni.width - 2) as f32) / 2.0,
-                    i as f32 * cell_size - (cell_size + cell_size * uni.height as f32) / 2.0,
-                ),
-                Color::GRAY,
-            );
-        }
+    for i in 1..uni.height {
+        gizmos.line_2d(
+            Vec2::new(
+                -(cell_size + cell_size * uni.width as f32) / 2.0,
+                i as f32 * cell_size - (cell_size + cell_size * uni.height as f32) / 2.0,
+            ),
+            Vec2::new(
+                (cell_size + cell_size * (uni.width - 2) as f32) / 2.0,
+                i as f32 * cell_size - (cell_size + cell_size * uni.height as f32) / 2.0,
+            ),
+            Color::GRAY,
+        );
     }
 }
 
-fn invert_state(state: &mut UiState) {
-    match *state {
-        UiState::Play => *state = UiState::Pause,
-        UiState::Pause => *state = UiState::Play,
+fn invert_state(state: &State<AppState>, next_state: &mut NextState<AppState>) {
+    match state.get() {
+        AppState::Play => next_state.set(AppState::Pause),
+        AppState::Pause => next_state.set(AppState::Play),
     }
 }
 fn ui_controls(
-    state: Option<ResMut<UiState>>,
+    state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
     mut last_modified: ResMut<LastChangedTile>,
     keys: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
@@ -134,9 +144,7 @@ fn ui_controls(
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
-        if let Some(mut state) = state {
-            invert_state(&mut state)
-        }
+        invert_state(&state, &mut next_state)
     }
     if buttons.pressed(MouseButton::Left) {
         // Games typically only have one window (the primary window)
@@ -171,7 +179,6 @@ fn iteration_duration_slider_changed(
 }
 
 fn setup(mut commands: Commands) {
-    commands.insert_resource(UiState::Pause);
     commands.insert_resource(IterationTimer(Timer::from_seconds(
         0.15,
         TimerMode::Repeating,
@@ -180,21 +187,4 @@ fn setup(mut commands: Commands) {
     commands.insert_resource(LastChangedTile(usize::MAX, usize::MAX));
     commands.spawn(IterationDuration(0.15));
     commands.spawn(RandomizeProbability(0.3));
-}
-
-pub struct UIPlugin;
-impl Plugin for UIPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(GameOfLifePlugin)
-            .add_systems(Startup, (setup,))
-            .add_systems(
-                Update,
-                (
-                    build_ui,
-                    build_grid,
-                    ui_controls,
-                    iteration_duration_slider_changed,
-                ),
-            );
-    }
 }

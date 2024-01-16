@@ -11,10 +11,7 @@ impl Plugin for CameraPlugin {
     }
 }
 
-fn spawn_camera(mut commands: Commands, mut window: Query<&Window>) {
-    // let width = 500.0;
-    // let cell_size = 25.0;
-    // let window = &window.single_mut();
+fn spawn_camera(mut commands: Commands) {
     let scale = 10.0;
     commands.spawn((
         Camera2dBundle {
