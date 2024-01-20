@@ -2,6 +2,7 @@ mod camera;
 mod game_of_life;
 mod game_of_life_logic;
 mod ui;
+mod unit_tests;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use camera::CameraPlugin;
