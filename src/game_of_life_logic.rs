@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use std::fmt;
 use std::fmt::Formatter;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Cell {
     Alive,
     Dead,
@@ -73,28 +73,25 @@ impl Universe {
         (x, y)
     }
 
-    fn count_alive_neighbors(&self) -> Vec<usize> {
+    pub fn count_alive_neighbors(&self) -> Vec<usize> {
         let mut counter = vec![0; self.height * self.width];
         for (index, value) in counter.iter_mut().enumerate() {
             let (i, j) = self.coordinates_from_linear(index);
             for i_offset in 1..=3 {
                 for j_offset in 1..=3 {
-                    let (i_offsetted, j_offsetted) =
-                        if (i == 0 && i_offset == 1) || (j == 0 && j_offset == 1) {
-                            (0, 0)
-                        } else {
-                            (i + (i_offset) - 2, j + (j_offset) - 2)
-                        };
-                    match (
-                        i_offset,
-                        j_offset,
-                        self.get_cell((i_offsetted, j_offsetted)),
-                    ) {
-                        (2, 2, _) => continue,
-                        (_, _, Cell::Alive) => {
-                            *value += 1;
+                    if !((i == 0 && i_offset == 1)   // upper border
+                        || (j == 0 && j_offset == 1) // lower border
+                        || (j == 2 && i == 2))
+                    // current cell
+                    {
+                        let i_offsetted = i + (i_offset) - 2;
+                        let j_offsetted = j + (j_offset) - 2;
+                        match self.get_cell((i_offsetted, j_offsetted)) {
+                            Cell::Alive => {
+                                *value += 1;
+                            }
+                            _ => continue,
                         }
-                        _ => continue,
                     }
                 }
             }
